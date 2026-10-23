@@ -1,0 +1,84 @@
+[project]
+name = "url-shortener"
+version = "0.1.0"
+description = "URL shortener with collision-free base62 codes, Redis caching, async click analytics and ML screening of malicious URLs."
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "alembic>=1.14",
+    "asyncpg>=0.30",
+    "fastapi>=0.115",
+    "joblib>=1.4",
+    "numpy>=2.0",
+    "pydantic>=2.9",
+    "pydantic-settings>=2.6",
+    "redis>=5.2",
+    # Pinned to a minor version: the model artifact is a pickle, and pickles are only
+    # guaranteed to load with the scikit-learn version that wrote them.
+    "scikit-learn>=1.9,<1.10",
+    "sqlalchemy[asyncio]>=2.0.36",
+    "user-agents>=2.2",
+    "uvicorn[standard]>=0.32",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "mypy>=2.4.0",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.17.2",
+]
+loadtest = [
+    "locust>=2.47.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "C4", "SIM", "RUF", "ASYNC", "PL", "N", "PT", "RET"]
+ignore = [
+    "PLR0913", # FastAPI handlers and services legitimately take many injected arguments
+    "PLR2004", # magic values are fine in feature engineering and tests
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106", "PLR0915"]
+"migrations/**" = ["E501"]
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Path", "fastapi.Header"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+files = ["app", "migrations", "tests"]
+
+[[tool.mypy.overrides]]
+module = ["asyncpg.*", "sklearn.*", "joblib.*", "user_agents.*", "locust.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+asyncio_default_test_loop_scope = "function"
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+filterwarnings = ["error::pytest.PytestUnraisableExceptionWarning"]
+
+[tool.coverage.run]
+source = ["app"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+fail_under = 85
+exclude_also = ["if TYPE_CHECKING:", "if __name__ == .__main__.:"]
