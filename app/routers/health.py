@@ -4,6 +4,11 @@ Liveness answers "is the process alive?" and must not touch dependencies: if Pos
 down, restarting the API would not help, so the orchestrator should not kill it.
 Readiness answers "should I receive traffic?" and does check dependencies, so a load
 balancer stops routing to an instance that cannot serve.
+
+Only Postgres is required for readiness. Redis is reported but does not fail the probe:
+the service degrades gracefully without it, and since every instance shares the same Redis,
+failing readiness on it would pull *all* instances out of the load balancer at once and turn
+a cache outage into a full outage.
 """
 
 import logging
@@ -41,7 +46,7 @@ async def healthz() -> LivenessResponse:
     responses={503: {"model": ReadinessResponse}},
 )
 async def readyz(session: SessionDep, redis: RedisDep) -> JSONResponse:
-    """200 only when Postgres and Redis both answer."""
+    """200 when Postgres answers (``degraded`` if Redis does not); 503 otherwise."""
     checks: dict[str, str] = {}
     try:
         await session.execute(text("SELECT 1"))
@@ -51,6 +56,11 @@ async def readyz(session: SessionDep, redis: RedisDep) -> JSONResponse:
         checks["database"] = "unavailable"
     checks["redis"] = "ok" if await redis.ping() else "unavailable"
 
-    ready = all(value == "ok" for value in checks.values())
-    body = ReadinessResponse(status="ok" if ready else "unavailable", checks=checks)
-    return JSONResponse(status_code=200 if ready else 503, content=body.model_dump())
+    if checks["database"] != "ok":
+        overall, status_code = "unavailable", 503
+    elif checks["redis"] != "ok":
+        overall, status_code = "degraded", 200
+    else:
+        overall, status_code = "ok", 200
+    body = ReadinessResponse(status=overall, checks=checks)
+    return JSONResponse(status_code=status_code, content=body.model_dump())

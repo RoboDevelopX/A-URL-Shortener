@@ -11,6 +11,7 @@ from app.core.errors import AppError, NotFoundError
 from app.models.link import Link, LinkStatus
 from app.repositories.links import DuplicateCodeError, LinkRepository
 from app.schemas.links import EffectiveStatus, LinkCreate, LinkResponse
+from app.services.cache import LinkCache
 from app.services.codes import ShortCodeGenerator, validate_alias
 from app.services.url_validation import URLPolicy, validate_target_url
 
@@ -76,12 +77,14 @@ class LinkService:
         self,
         session: AsyncSession,
         codes: ShortCodeGenerator,
+        cache: LinkCache,
         settings: Settings,
         clock: Clock = utcnow,
     ) -> None:
         self._session = session
         self._repo = LinkRepository(session)
         self._codes = codes
+        self._cache = cache
         self._clock = clock
         self._url_policy = URLPolicy(
             max_length=settings.max_url_length,
@@ -113,6 +116,9 @@ class LinkService:
             link = await self._insert_generated(long_url, expires_at)
 
         await self._session.commit()
+        # Clears a cached 404 for this code (someone may have probed an alias before it
+        # existed), so the new link is reachable immediately.
+        await self._cache.invalidate(link.code)
         logger.info("link_created", extra={"code": link.code, "is_custom": link.is_custom})
         return link
 
@@ -146,6 +152,7 @@ class LinkService:
             raise LinkGoneError("Disabled links cannot be changed.")
         link.expires_at = self._check_expiry(expires_at)
         await self._session.commit()
+        await self._cache.invalidate(code)
         await self._session.refresh(link)
         return link
 
@@ -155,4 +162,5 @@ class LinkService:
         if link.status is not LinkStatus.DISABLED:
             link.status = LinkStatus.DISABLED
             await self._session.commit()
+            await self._cache.invalidate(code)
             logger.info("link_disabled", extra={"code": code})

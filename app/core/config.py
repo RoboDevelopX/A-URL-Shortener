@@ -32,6 +32,12 @@ class Settings(BaseSettings):
     redis_socket_timeout_seconds: float = Field(default=0.25, gt=0)
     redis_circuit_cooldown_seconds: float = Field(default=5.0, gt=0)
 
+    # Bounded on purpose: if an invalidation is lost (Redis down during a PATCH), a stale
+    # entry can live at most this long.
+    cache_ttl_seconds: int = Field(default=600, ge=1)
+    # Caching "this code does not exist" shields Postgres from bots scanning random codes.
+    negative_cache_ttl_seconds: int = Field(default=30, ge=1)
+
     public_base_url: HttpUrl = Field(
         default=HttpUrl("http://localhost:8000"),
         description="Origin that short links are served from; prefixed to every code.",

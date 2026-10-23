@@ -16,15 +16,18 @@ async def test_readyz_reports_dependencies(client: AsyncClient) -> None:
     assert response.json()["checks"] == {"database": "ok", "redis": "ok"}
 
 
-async def test_readyz_is_503_when_redis_is_down() -> None:
+async def test_readyz_is_degraded_but_ready_when_redis_is_down() -> None:
     app = create_app(make_settings(redis_url="redis://127.0.0.1:1/0"))
     async with (
         app.router.lifespan_context(app),
         AsyncClient(transport=ASGITransport(app=app), base_url="http://t") as client,
     ):
         response = await client.get("/readyz")
-    assert response.status_code == 503
-    assert response.json()["checks"] == {"database": "ok", "redis": "unavailable"}
+    assert response.status_code == 200
+    assert response.json() == {
+        "status": "degraded",
+        "checks": {"database": "ok", "redis": "unavailable"},
+    }
 
 
 async def test_readyz_is_503_when_database_is_down() -> None:

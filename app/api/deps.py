@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.config import Settings
 from app.core.redis import RedisGateway
+from app.services.cache import LinkCache
 from app.services.codes import ShortCodeGenerator
 from app.services.links import LinkService
 from app.services.redirects import RedirectService
@@ -46,16 +47,24 @@ def get_code_generator(request: Request) -> ShortCodeGenerator:
     return codes
 
 
+def get_link_cache(redis: RedisDep, settings: SettingsDep) -> LinkCache:
+    return LinkCache(redis, settings.cache_ttl_seconds, settings.negative_cache_ttl_seconds)
+
+
+LinkCacheDep = Annotated[LinkCache, Depends(get_link_cache)]
+
+
 def get_link_service(
     session: SessionDep,
     settings: SettingsDep,
     codes: Annotated[ShortCodeGenerator, Depends(get_code_generator)],
+    cache: LinkCacheDep,
 ) -> LinkService:
-    return LinkService(session, codes, settings)
+    return LinkService(session, codes, cache, settings)
 
 
-def get_redirect_service(session: SessionDep) -> RedirectService:
-    return RedirectService(session)
+def get_redirect_service(session: SessionDep, cache: LinkCacheDep) -> RedirectService:
+    return RedirectService(session, cache)
 
 
 LinkServiceDep = Annotated[LinkService, Depends(get_link_service)]

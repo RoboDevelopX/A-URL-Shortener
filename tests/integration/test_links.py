@@ -6,6 +6,7 @@ from httpx import AsyncClient
 from sqlalchemy import update
 
 from app.models.link import Link
+from app.services.cache import cache_key
 
 LINKS = "/api/v1/links"
 
@@ -18,7 +19,11 @@ async def create(client: AsyncClient, **body: object) -> dict[str, object]:
 
 
 async def expire_in_db(app: FastAPI, code: str) -> None:
-    """The API refuses past expiries, so tests move expiry into the past directly."""
+    """The API refuses past expiries, so tests move expiry into the past directly.
+
+    This bypasses the service, so it must also drop the cache entry the service would
+    have invalidated.
+    """
     async with app.state.session_factory() as session:
         await session.execute(
             update(Link)
@@ -26,6 +31,7 @@ async def expire_in_db(app: FastAPI, code: str) -> None:
             .values(expires_at=datetime.now(UTC) - timedelta(seconds=1))
         )
         await session.commit()
+    await app.state.redis.client.delete(cache_key(code))
 
 
 async def test_create_returns_generated_code_and_location(client: AsyncClient) -> None:
