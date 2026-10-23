@@ -5,7 +5,7 @@ COMPOSE ?= docker compose
 UV ?= uv
 
 .DEFAULT_GOAL := help
-.PHONY: help up down logs migrate demo-key test lint format train
+.PHONY: help up down logs migrate demo-key test lint format train loadtest
 
 help: ## Show available targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-10s %s\n", $$1, $$2}'
@@ -40,3 +40,13 @@ format: ## Auto-fix lint issues and format code
 
 train: ## Download the dataset (checksum-pinned), train, evaluate and save the model
 	$(UV) run python -m ml.train
+
+LOADTEST_USERS ?= 50
+LOADTEST_DURATION ?= 60s
+
+loadtest: ## Run Locust headless against the running stack (LOADTEST_USERS, LOADTEST_DURATION)
+	mkdir -p loadtest/results
+	LOADTEST_API_KEY=$$($(COMPOSE) exec -T api python -m app.cli create-api-key --name loadtest --quiet) \
+	$(UV) run --group loadtest locust -f loadtest/locustfile.py --headless \
+		--host http://localhost:$${API_PORT:-8000} -u $(LOADTEST_USERS) -r 10 -t $(LOADTEST_DURATION) \
+		--csv loadtest/results/run --only-summary

@@ -37,7 +37,6 @@ class ModelMetadata:
     artifact_sha256: str
     block_threshold: float
     review_threshold: float
-    raw: dict[str, Any]
 
 
 def metadata_path_for(artifact_path: Path) -> Path:
@@ -69,7 +68,6 @@ class UrlClassifier:
                 artifact_sha256=str(raw["artifact_sha256"]),
                 block_threshold=float(raw["thresholds"]["block"]),
                 review_threshold=float(raw["thresholds"]["review"]),
-                raw=raw,
             )
         except (OSError, ValueError, KeyError, TypeError) as exc:
             raise ModelLoadError(f"cannot read model metadata {meta_path}: {exc}") from exc

@@ -21,7 +21,6 @@ TEST_REDIS_URL = os.environ.get("TEST_REDIS_URL", "redis://localhost:6379/15")
 def make_settings(**overrides: object) -> Settings:
     """Settings for tests; keyword arguments override individual fields."""
     values: dict[str, object] = {
-        "environment": "test",
         "log_level": "WARNING",
         "database_url": TEST_DATABASE_URL,
         "redis_url": TEST_REDIS_URL,

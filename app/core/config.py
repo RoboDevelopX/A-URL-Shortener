@@ -19,7 +19,6 @@ class Settings(BaseSettings):
     # Empty variables count as unset, so compose can pass "${VAR:-}" through safely.
     model_config = SettingsConfigDict(env_file=".env", extra="ignore", env_ignore_empty=True)
 
-    environment: Literal["dev", "test", "prod"] = "dev"
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
 
     database_url: str = Field(

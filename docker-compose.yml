@@ -8,7 +8,6 @@ x-app: &app
   build: .
   image: url-shortener:local
   environment: &app-env
-    ENVIRONMENT: ${ENVIRONMENT:-dev}
     LOG_LEVEL: ${LOG_LEVEL:-INFO}
     DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-shortener}:${POSTGRES_PASSWORD:-shortener-dev-password}@postgres:5432/${POSTGRES_DB:-shortener}
     REDIS_URL: redis://redis:6379/0
