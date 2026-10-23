@@ -12,6 +12,8 @@ x-app: &app
     LOG_LEVEL: ${LOG_LEVEL:-INFO}
     DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-shortener}:${POSTGRES_PASSWORD:-shortener-dev-password}@postgres:5432/${POSTGRES_DB:-shortener}
     REDIS_URL: redis://redis:6379/0
+    PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8000}
+    CODE_SECRET: ${CODE_SECRET:-dev-only-code-secret-change-me}
 
 services:
   postgres:

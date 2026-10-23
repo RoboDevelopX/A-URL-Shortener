@@ -22,6 +22,7 @@ def make_settings(**overrides: object) -> Settings:
         "log_level": "WARNING",
         "database_url": TEST_DATABASE_URL,
         "redis_url": TEST_REDIS_URL,
+        "code_secret": "test-code-secret",
     }
     values.update(overrides)
     return Settings.model_validate(values)

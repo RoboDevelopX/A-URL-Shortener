@@ -12,6 +12,9 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.config import Settings
 from app.core.redis import RedisGateway
+from app.services.codes import ShortCodeGenerator
+from app.services.links import LinkService
+from app.services.redirects import RedirectService
 
 
 def get_settings_dep(request: Request) -> Settings:
@@ -36,3 +39,24 @@ async def get_session(request: Request) -> AsyncIterator[AsyncSession]:
 SettingsDep = Annotated[Settings, Depends(get_settings_dep)]
 RedisDep = Annotated[RedisGateway, Depends(get_redis)]
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
+
+
+def get_code_generator(request: Request) -> ShortCodeGenerator:
+    codes: ShortCodeGenerator = request.app.state.codes
+    return codes
+
+
+def get_link_service(
+    session: SessionDep,
+    settings: SettingsDep,
+    codes: Annotated[ShortCodeGenerator, Depends(get_code_generator)],
+) -> LinkService:
+    return LinkService(session, codes, settings)
+
+
+def get_redirect_service(session: SessionDep) -> RedirectService:
+    return RedirectService(session)
+
+
+LinkServiceDep = Annotated[LinkService, Depends(get_link_service)]
+RedirectServiceDep = Annotated[RedirectService, Depends(get_redirect_service)]

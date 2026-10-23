@@ -15,7 +15,8 @@ from app.core.errors import register_error_handlers
 from app.core.logging import configure_logging
 from app.core.middleware import RequestContextMiddleware
 from app.core.redis import create_redis
-from app.routers import health
+from app.routers import health, links, redirect
+from app.services.codes import ShortCodeGenerator
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -31,6 +32,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.engine = engine
         app.state.session_factory = create_session_factory(engine)
         app.state.redis = redis
+        app.state.codes = ShortCodeGenerator(
+            settings.code_secret.get_secret_value().encode(), settings.code_length
+        )
         try:
             yield
         finally:
@@ -46,4 +50,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_middleware(RequestContextMiddleware)
     register_error_handlers(app)
     app.include_router(health.router)
+    app.include_router(links.router)
+    # Last: ``/{code}`` matches any single path segment.
+    app.include_router(redirect.router)
     return app
