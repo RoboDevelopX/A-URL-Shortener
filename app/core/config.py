@@ -38,6 +38,16 @@ class Settings(BaseSettings):
     # Caching "this code does not exist" shields Postgres from bots scanning random codes.
     negative_cache_ttl_seconds: int = Field(default=30, ge=1)
 
+    click_stream_key: str = "clicks:stream"
+    click_consumer_group: str = "click-writers"
+    # Safety cap on the stream if the worker falls far behind. Processed entries are deleted
+    # as soon as they are written, so in normal operation the stream stays near-empty.
+    click_stream_max_length: int = Field(default=500_000, ge=1000)
+    worker_batch_size: int = Field(default=500, ge=1, le=10_000)
+    worker_block_ms: int = Field(default=1000, ge=10)
+    # A message delivered to a worker that died is re-claimed by another after this long.
+    worker_claim_idle_ms: int = Field(default=60_000, ge=1000)
+
     public_base_url: HttpUrl = Field(
         default=HttpUrl("http://localhost:8000"),
         description="Origin that short links are served from; prefixed to every code.",

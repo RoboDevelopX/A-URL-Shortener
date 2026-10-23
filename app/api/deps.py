@@ -12,10 +12,12 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.config import Settings
 from app.core.redis import RedisGateway
+from app.services.analytics import ClickRecorder
 from app.services.cache import LinkCache
 from app.services.codes import ShortCodeGenerator
 from app.services.links import LinkService
 from app.services.redirects import RedirectService
+from app.services.stats import StatsService
 
 
 def get_settings_dep(request: Request) -> Settings:
@@ -69,3 +71,15 @@ def get_redirect_service(session: SessionDep, cache: LinkCacheDep) -> RedirectSe
 
 LinkServiceDep = Annotated[LinkService, Depends(get_link_service)]
 RedirectServiceDep = Annotated[RedirectService, Depends(get_redirect_service)]
+
+
+def get_click_recorder(request: Request, redis: RedisDep, settings: SettingsDep) -> ClickRecorder:
+    return ClickRecorder(redis, request.app.state.session_factory, settings)
+
+
+def get_stats_service(session: SessionDep) -> StatsService:
+    return StatsService(session)
+
+
+ClickRecorderDep = Annotated[ClickRecorder, Depends(get_click_recorder)]
+StatsServiceDep = Annotated[StatsService, Depends(get_stats_service)]

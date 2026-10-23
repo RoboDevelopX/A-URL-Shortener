@@ -1,5 +1,5 @@
 # Local stack: `docker compose up` (or `make up`) starts everything in dependency order:
-# postgres + redis -> migrate (one-shot) -> api + worker.
+# postgres + redis -> migrate (one-shot) -> api + worker (click ingestion).
 #
 # The ${VAR:-default} fallbacks below are development-only values so the stack starts
 # without any setup. Real deployments must provide their own (see .env.example).
@@ -71,6 +71,16 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+    restart: unless-stopped
+
+  worker:
+    <<: *app
+    command: ["python", "-m", "app.worker"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:

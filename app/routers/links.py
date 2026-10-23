@@ -1,10 +1,13 @@
 """Management API for links."""
 
-from fastapi import APIRouter, Response, status
+from typing import Annotated
 
-from app.api.deps import LinkServiceDep, SettingsDep
+from fastapi import APIRouter, Query, Response, status
+
+from app.api.deps import LinkServiceDep, SettingsDep, StatsServiceDep
 from app.schemas.errors import ErrorResponse
 from app.schemas.links import LinkCreate, LinkResponse, LinkUpdate
+from app.schemas.stats import LinkStats
 from app.services.links import to_response, utcnow
 
 router = APIRouter(prefix="/api/v1/links", tags=["links"])
@@ -58,3 +61,15 @@ async def disable_link(code: str, service: LinkServiceDep) -> Response:
     """Disable a link. Redirects then return 410; the code is never reused."""
     await service.disable(code)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get("/{code}/stats", response_model=LinkStats, responses=_ERRORS)
+async def link_stats(
+    code: str,
+    service: LinkServiceDep,
+    stats: StatsServiceDep,
+    days: Annotated[int, Query(ge=1, le=365, description="Window size in UTC days")] = 30,
+) -> LinkStats:
+    """Click totals, daily clicks, top referrers, devices and browsers."""
+    link = await service.get(code)
+    return await stats.for_link(link, days)
