@@ -81,6 +81,9 @@ filterwarnings = ["error::pytest.PytestUnraisableExceptionWarning"]
 [tool.coverage.run]
 source = ["app"]
 branch = true
+# SQLAlchemy's asyncio layer runs ORM code inside greenlets; without this, coverage misses
+# lines that executed there and under-reports.
+concurrency = ["greenlet", "thread"]
 
 [tool.coverage.report]
 show_missing = true

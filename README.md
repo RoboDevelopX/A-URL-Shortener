@@ -150,7 +150,7 @@ make test   # 214 tests: unit (pure functions) + integration (real Postgres and 
 make lint   # ruff check, ruff format --check, mypy --strict
 ```
 
-The integration tests run the real app in-process against real Postgres and Redis. Before the suite, a session fixture migrates the test database down to base and back up to head, so both migration directions are exercised. Last measured run: **214 passed, 95.6% line+branch coverage of `app/`**.
+The integration tests run the real app in-process against real Postgres and Redis. Before the suite, a session fixture migrates the test database down to base and back up to head, so both migration directions are exercised. Last measured run: **214 passed, 98.4% line + branch coverage of `app/`**.
 
 What's covered:
 
