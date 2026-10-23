@@ -17,6 +17,7 @@ from app.core.config import Settings
 from app.main import create_app
 from app.models import Base
 from tests.conftest import TEST_DATABASE_URL, make_settings
+from tests.integration.helpers import issue_key
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -77,6 +78,23 @@ async def app(settings: Settings) -> AsyncIterator[FastAPI]:
 
 
 @pytest.fixture
-async def client(app: FastAPI) -> AsyncIterator[AsyncClient]:
+async def api_key(app: FastAPI) -> str:
+    return await issue_key(app)
+
+
+@pytest.fixture
+async def client(app: FastAPI, api_key: str) -> AsyncIterator[AsyncClient]:
+    """Client that sends a valid API key on every request."""
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://testserver",
+        headers={"X-API-Key": api_key},
+    ) as c:
+        yield c
+
+
+@pytest.fixture
+async def anon_client(app: FastAPI) -> AsyncIterator[AsyncClient]:
+    """Client without credentials, like a browser following a short link."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://testserver") as c:
         yield c

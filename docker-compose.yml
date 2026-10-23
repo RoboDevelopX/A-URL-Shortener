@@ -14,6 +14,9 @@ x-app: &app
     REDIS_URL: redis://redis:6379/0
     PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8000}
     CODE_SECRET: ${CODE_SECRET:-dev-only-code-secret-change-me}
+    API_KEY_PEPPER: ${API_KEY_PEPPER:-dev-only-pepper-change-me}
+    RATE_LIMIT_CREATE_PER_KEY: ${RATE_LIMIT_CREATE_PER_KEY:-60}
+    RATE_LIMIT_CREATE_PER_IP: ${RATE_LIMIT_CREATE_PER_IP:-120}
 
 services:
   postgres:

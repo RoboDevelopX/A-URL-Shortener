@@ -13,6 +13,7 @@ from app.models.click import Click
 from app.services.analytics import ClickConsumer, ClickEvent, ClickRecorder
 from app.worker import run
 from tests.conftest import make_settings
+from tests.integration.helpers import issue_key
 from tests.unit.test_analytics import CHROME_WINDOWS, GOOGLEBOT, IPHONE
 
 LINKS = "/api/v1/links"
@@ -130,6 +131,7 @@ async def test_clicks_are_written_directly_when_redis_is_down() -> None:
         app.router.lifespan_context(app),
         AsyncClient(transport=ASGITransport(app=app), base_url="http://t") as client,
     ):
+        client.headers["X-API-Key"] = await issue_key(app)
         code = (await client.post(LINKS, json={"url": "https://example.com/x"})).json()["code"]
         assert (await client.get(f"/{code}", headers={"user-agent": IPHONE})).status_code == 302
         stats = (await client.get(f"{LINKS}/{code}/stats")).json()

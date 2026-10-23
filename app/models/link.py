@@ -9,6 +9,7 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     Enum,
+    ForeignKey,
     Sequence,
     String,
     Text,
@@ -47,6 +48,9 @@ class Link(Base):
     # index for redirect lookups and is the final guard against duplicate codes.
     code: Mapped[str] = mapped_column(String(32, collation="C"), unique=True)
     long_url: Mapped[str] = mapped_column(Text)
+    owner_key_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("api_keys.id", ondelete="RESTRICT"), index=True
+    )
     is_custom: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     status: Mapped[LinkStatus] = mapped_column(
         Enum(LinkStatus, name="link_status", values_callable=lambda e: [m.value for m in e]),

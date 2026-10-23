@@ -38,6 +38,13 @@ class Settings(BaseSettings):
     # Caching "this code does not exist" shields Postgres from bots scanning random codes.
     negative_cache_ttl_seconds: int = Field(default=30, ge=1)
 
+    api_key_pepper: SecretStr = Field(
+        description="Server-side secret mixed into API key hashes (HMAC key).",
+    )
+    rate_limit_window_seconds: int = Field(default=60, ge=1)
+    rate_limit_create_per_key: int = Field(default=60, ge=1)
+    rate_limit_create_per_ip: int = Field(default=120, ge=1)
+
     click_stream_key: str = "clicks:stream"
     click_consumer_group: str = "click-writers"
     # Safety cap on the stream if the worker falls far behind. Processed entries are deleted

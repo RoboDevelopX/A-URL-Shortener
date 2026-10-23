@@ -17,6 +17,7 @@ from app.core.middleware import RequestContextMiddleware
 from app.core.redis import create_redis
 from app.routers import health, links, redirect
 from app.services.codes import ShortCodeGenerator
+from app.services.rate_limit import SlidingWindowRateLimiter
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -34,6 +35,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.redis = redis
         app.state.codes = ShortCodeGenerator(
             settings.code_secret.get_secret_value().encode(), settings.code_length
+        )
+        app.state.create_limiter = SlidingWindowRateLimiter(
+            redis, settings.rate_limit_window_seconds, namespace="create"
         )
         try:
             yield

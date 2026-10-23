@@ -23,6 +23,7 @@ def make_settings(**overrides: object) -> Settings:
         "database_url": TEST_DATABASE_URL,
         "redis_url": TEST_REDIS_URL,
         "code_secret": "test-code-secret",
+        "api_key_pepper": "test-pepper",
     }
     values.update(overrides)
     return Settings.model_validate(values)

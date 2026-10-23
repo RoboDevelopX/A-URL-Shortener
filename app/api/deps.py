@@ -7,15 +7,20 @@ Tests override these functions instead of monkeypatching modules.
 from collections.abc import AsyncIterator
 from typing import Annotated
 
-from fastapi import Depends, Request
+from fastapi import Depends, Request, Security
+from fastapi.security import APIKeyHeader
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.config import Settings
+from app.core.errors import AppError
 from app.core.redis import RedisGateway
+from app.models.api_key import ApiKey
 from app.services.analytics import ClickRecorder
+from app.services.auth import ApiKeyService
 from app.services.cache import LinkCache
 from app.services.codes import ShortCodeGenerator
 from app.services.links import LinkService
+from app.services.rate_limit import RateLimitRule, SlidingWindowRateLimiter
 from app.services.redirects import RedirectService
 from app.services.stats import StatsService
 
@@ -83,3 +88,56 @@ def get_stats_service(session: SessionDep) -> StatsService:
 
 ClickRecorderDep = Annotated[ClickRecorder, Depends(get_click_recorder)]
 StatsServiceDep = Annotated[StatsService, Depends(get_stats_service)]
+
+
+# Declared as a security scheme so the OpenAPI docs show an "Authorize" button.
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+
+async def get_current_api_key(
+    session: SessionDep,
+    settings: SettingsDep,
+    raw_key: Annotated[str | None, Security(api_key_header)],
+) -> ApiKey:
+    service = ApiKeyService(session, settings.api_key_pepper.get_secret_value().encode())
+    return await service.authenticate(raw_key)
+
+
+CurrentApiKey = Annotated[ApiKey, Depends(get_current_api_key)]
+
+
+class RateLimitedError(AppError):
+    status_code = 429
+    code = "rate_limited"
+    default_message = "Too many requests."
+
+
+def get_create_limiter(request: Request) -> SlidingWindowRateLimiter:
+    limiter: SlidingWindowRateLimiter = request.app.state.create_limiter
+    return limiter
+
+
+async def enforce_create_rate_limit(
+    request: Request,
+    api_key: CurrentApiKey,
+    settings: SettingsDep,
+    limiter: Annotated[SlidingWindowRateLimiter, Depends(get_create_limiter)],
+) -> None:
+    """Limit link creation per API key and per client IP; 429 with Retry-After if exceeded.
+
+    The client IP is what uvicorn reports. Behind a load balancer, run uvicorn with
+    ``--proxy-headers --forwarded-allow-ips=<lb address>`` so this is the real client and not
+    the balancer (and never trust X-Forwarded-For from arbitrary clients).
+    """
+    client_ip = request.client.host if request.client else "unknown"
+    decision = await limiter.hit(
+        [
+            RateLimitRule(f"key:{api_key.id}", settings.rate_limit_create_per_key),
+            RateLimitRule(f"ip:{client_ip}", settings.rate_limit_create_per_ip),
+        ]
+    )
+    if not decision.allowed:
+        raise RateLimitedError(
+            f"Rate limit exceeded; retry in {decision.retry_after_seconds}s.",
+            headers={"Retry-After": str(decision.retry_after_seconds)},
+        )

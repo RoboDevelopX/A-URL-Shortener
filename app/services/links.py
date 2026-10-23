@@ -96,8 +96,8 @@ class LinkService:
             raise InvalidExpiryError
         return expires_at
 
-    async def create(self, data: LinkCreate) -> Link:
-        """Validate and store a new link, returning it with its code."""
+    async def create(self, data: LinkCreate, owner_id: int) -> Link:
+        """Validate and store a new link owned by ``owner_id``, returning it with its code."""
         long_url = validate_target_url(data.url, self._url_policy)
         expires_at = self._check_expiry(data.expires_at)
 
@@ -105,6 +105,7 @@ class LinkService:
             link = Link(
                 code=validate_alias(data.alias),
                 long_url=long_url,
+                owner_key_id=owner_id,
                 is_custom=True,
                 expires_at=expires_at,
             )
@@ -113,7 +114,7 @@ class LinkService:
             except DuplicateCodeError:
                 raise AliasConflictError(f"Alias '{data.alias}' is already taken.") from None
         else:
-            link = await self._insert_generated(long_url, expires_at)
+            link = await self._insert_generated(long_url, expires_at, owner_id)
 
         await self._session.commit()
         # Clears a cached 404 for this code (someone may have probed an alias before it
@@ -122,13 +123,16 @@ class LinkService:
         logger.info("link_created", extra={"code": link.code, "is_custom": link.is_custom})
         return link
 
-    async def _insert_generated(self, long_url: str, expires_at: datetime | None) -> Link:
+    async def _insert_generated(
+        self, long_url: str, expires_at: datetime | None, owner_id: int
+    ) -> Link:
         for _ in range(MAX_CODE_ATTEMPTS):
             link_id = await self._repo.next_id()
             link = Link(
                 id=link_id,
                 code=self._codes.encode(link_id),
                 long_url=long_url,
+                owner_key_id=owner_id,
                 is_custom=False,
                 expires_at=expires_at,
             )
@@ -140,14 +144,19 @@ class LinkService:
             return link
         raise AppError("Could not allocate a short code.")
 
-    async def get(self, code: str) -> Link:
+    async def get(self, code: str, owner_id: int) -> Link:
+        """The link if it exists *and* belongs to ``owner_id``.
+
+        Someone else's link is reported as 404, not 403, so keys cannot discover which
+        codes other customers use.
+        """
         link = await self._repo.get_by_code(code)
-        if link is None:
+        if link is None or link.owner_key_id != owner_id:
             raise NotFoundError(f"Link '{code}' not found.")
         return link
 
-    async def update_expiry(self, code: str, expires_at: datetime | None) -> Link:
-        link = await self.get(code)
+    async def update_expiry(self, code: str, expires_at: datetime | None, owner_id: int) -> Link:
+        link = await self.get(code, owner_id)
         if link.status is LinkStatus.DISABLED:
             raise LinkGoneError("Disabled links cannot be changed.")
         link.expires_at = self._check_expiry(expires_at)
@@ -156,9 +165,9 @@ class LinkService:
         await self._session.refresh(link)
         return link
 
-    async def disable(self, code: str) -> None:
+    async def disable(self, code: str, owner_id: int) -> None:
         """Soft-delete. Idempotent: disabling a disabled link is a no-op."""
-        link = await self.get(code)
+        link = await self.get(code, owner_id)
         if link.status is not LinkStatus.DISABLED:
             link.status = LinkStatus.DISABLED
             await self._session.commit()

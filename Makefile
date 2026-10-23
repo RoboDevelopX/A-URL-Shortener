@@ -5,7 +5,7 @@ COMPOSE ?= docker compose
 UV ?= uv
 
 .DEFAULT_GOAL := help
-.PHONY: help up down logs migrate test lint format
+.PHONY: help up down logs migrate demo-key test lint format
 
 help: ## Show available targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-10s %s\n", $$1, $$2}'
@@ -21,6 +21,9 @@ logs: ## Tail logs from all services
 
 migrate: ## Apply database migrations
 	$(COMPOSE) run --rm migrate
+
+demo-key: ## Issue an API key from the running stack and print it
+	@$(COMPOSE) exec -T api python -m app.cli create-api-key --name demo --quiet
 
 test: ## Run unit + integration tests with coverage (starts postgres and redis)
 	$(COMPOSE) up -d --wait postgres redis

@@ -12,6 +12,7 @@ from app.main import create_app
 from app.models.link import Link
 from app.services.cache import LinkCache, cache_key
 from tests.conftest import make_settings
+from tests.integration.helpers import issue_key
 
 LINKS = "/api/v1/links"
 
@@ -83,6 +84,7 @@ async def test_service_keeps_working_when_redis_is_down(caplog: pytest.LogCaptur
             app.router.lifespan_context(app),
             AsyncClient(transport=ASGITransport(app=app), base_url="http://t") as client,
         ):
+            client.headers["X-API-Key"] = await issue_key(app)
             created = await client.post(LINKS, json={"url": "https://example.com/no-redis"})
             assert created.status_code == 201
             code = created.json()["code"]
