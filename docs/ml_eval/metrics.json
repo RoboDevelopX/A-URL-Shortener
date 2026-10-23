@@ -1,0 +1,182 @@
+{
+  "version": "urlclf-20261023-1d614354",
+  "trained_at": "2026-10-23T16:05:25+00:00",
+  "machine": "x86_64 Linux, 4 vCPU, Python 3.12.3, scikit-learn 1.9.1",
+  "data": {
+    "raw_rows": 420464,
+    "dropped_duplicates": 9515,
+    "dropped_conflicts": 2,
+    "rows": 410947,
+    "malicious_share": 0.1609720961583854,
+    "train": 304315,
+    "val": 55579,
+    "test": 51053
+  },
+  "candidates": {
+    "logistic_regression": {
+      "roc_auc": 0.8854,
+      "pr_auc": 0.7638,
+      "fit_seconds": 10.9
+    },
+    "hist_gradient_boosting": {
+      "roc_auc": 0.9507,
+      "pr_auc": 0.8818,
+      "fit_seconds": 36.6
+    }
+  },
+  "selected_model": "hist_gradient_boosting",
+  "thresholds": {
+    "block": 0.925209,
+    "review": 0.720504
+  },
+  "test": {
+    "roc_auc": 0.962,
+    "pr_auc": 0.9021,
+    "at_block": {
+      "threshold": 0.9252,
+      "precision": 0.9894,
+      "recall": 0.5513,
+      "f1": 0.7081,
+      "false_positive_rate": 0.0013,
+      "confusion_matrix": {
+        "tn": 41551,
+        "fp": 56,
+        "fn": 4238,
+        "tp": 5208
+      }
+    },
+    "at_review": {
+      "threshold": 0.7205,
+      "precision": 0.9475,
+      "recall": 0.6992,
+      "f1": 0.8047,
+      "false_positive_rate": 0.0088,
+      "confusion_matrix": {
+        "tn": 41241,
+        "fp": 366,
+        "fn": 2841,
+        "tp": 6605
+      }
+    },
+    "at_0_5": {
+      "threshold": 0.5,
+      "precision": 0.8386,
+      "recall": 0.7747,
+      "f1": 0.8054,
+      "false_positive_rate": 0.0338,
+      "confusion_matrix": {
+        "tn": 40199,
+        "fp": 1408,
+        "fn": 2128,
+        "tp": 7318
+      }
+    }
+  },
+  "random_split_comparison": {
+    "roc_auc": 0.977,
+    "pr_auc": 0.9335
+  },
+  "sanity": [
+    {
+      "expected": "benign",
+      "url": "https://example.com",
+      "score": 0.0664,
+      "decision": "allow"
+    },
+    {
+      "expected": "benign",
+      "url": "https://www.bbc.co.uk",
+      "score": 0.011,
+      "decision": "allow"
+    },
+    {
+      "expected": "benign",
+      "url": "https://en.wikipedia.org/wiki/Python_(programming_language)",
+      "score": 0.004,
+      "decision": "allow"
+    },
+    {
+      "expected": "benign",
+      "url": "https://github.com/fastapi/fastapi/issues/1234",
+      "score": 0.0176,
+      "decision": "allow"
+    },
+    {
+      "expected": "benign",
+      "url": "https://docs.python.org/3/library/asyncio.html",
+      "score": 0.0439,
+      "decision": "allow"
+    },
+    {
+      "expected": "benign",
+      "url": "https://www.amazon.com/dp/B08N5WRWNW",
+      "score": 0.0468,
+      "decision": "allow"
+    },
+    {
+      "expected": "benign",
+      "url": "https://news.ycombinator.com/item?id=41234567",
+      "score": 0.0201,
+      "decision": "allow"
+    },
+    {
+      "expected": "benign",
+      "url": "https://accounts.google.com/signin/v2/identifier",
+      "score": 0.9377,
+      "decision": "block"
+    },
+    {
+      "expected": "benign",
+      "url": "https://drive.google.com/file/d/1a2B3c4D5e6F7g8H9i0J/view?usp=sharing",
+      "score": 0.2592,
+      "decision": "allow"
+    },
+    {
+      "expected": "benign",
+      "url": "https://us02web.zoom.us/j/81234567890?pwd=QWERTYuiop123",
+      "score": 0.3737,
+      "decision": "allow"
+    },
+    {
+      "expected": "malicious",
+      "url": "http://paypal.com.secure-login-verify-account.xyz/webscr/cmd=_login-submit/update.php",
+      "score": 1.0,
+      "decision": "block"
+    },
+    {
+      "expected": "malicious",
+      "url": "http://198.51.100.23/bins/mirai.x86",
+      "score": 0.9953,
+      "decision": "block"
+    },
+    {
+      "expected": "malicious",
+      "url": "http://appleid-verify-account-locked.top/signin/index.php?session=8f7a6d5e4c3b2a1",
+      "score": 1.0,
+      "decision": "block"
+    },
+    {
+      "expected": "malicious",
+      "url": "http://free-gift-card-bonus.win/claim.php?id=88823&lucky=1",
+      "score": 0.9877,
+      "decision": "block"
+    },
+    {
+      "expected": "malicious",
+      "url": "http://login.microsoftonline.com.office365-secure.ru/owa/auth.php",
+      "score": 0.9977,
+      "decision": "block"
+    },
+    {
+      "expected": "malicious",
+      "url": "http://secure-banking-update.tk/wellsfargo/verification/login.html",
+      "score": 1.0,
+      "decision": "block"
+    }
+  ],
+  "latency": {
+    "p50_ms": 5.144,
+    "p99_ms": 19.973,
+    "samples": 2000
+  }
+}

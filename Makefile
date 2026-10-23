@@ -5,7 +5,7 @@ COMPOSE ?= docker compose
 UV ?= uv
 
 .DEFAULT_GOAL := help
-.PHONY: help up down logs migrate demo-key test lint format
+.PHONY: help up down logs migrate demo-key test lint format train
 
 help: ## Show available targets
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  %-10s %s\n", $$1, $$2}'
@@ -37,3 +37,6 @@ lint: ## Ruff lint, Ruff format check and mypy
 format: ## Auto-fix lint issues and format code
 	$(UV) run ruff check --fix .
 	$(UV) run ruff format .
+
+train: ## Download the dataset (checksum-pinned), train, evaluate and save the model
+	$(UV) run python -m ml.train

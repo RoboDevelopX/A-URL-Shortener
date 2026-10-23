@@ -13,11 +13,13 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
 from sqlalchemy.engine import make_url
 
+from app.api.deps import get_screener
 from app.core.config import Settings
 from app.main import create_app
 from app.models import Base
 from tests.conftest import TEST_DATABASE_URL, make_settings
 from tests.integration.helpers import issue_key
+from tests.stubs import allow_all_screener
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -66,8 +68,14 @@ def settings() -> Settings:
 
 @pytest.fixture
 async def app(settings: Settings) -> AsyncIterator[FastAPI]:
-    """A started app with empty tables and an empty Redis database."""
+    """A started app with empty tables and an empty Redis database.
+
+    Screening uses a stub that allows everything, so tests about links, caching or auth do
+    not depend on what the real model thinks of their example URLs. ``test_screening.py``
+    removes the override to exercise the real model.
+    """
     application = create_app(settings)
+    application.dependency_overrides[get_screener] = allow_all_screener
     async with application.router.lifespan_context(application):
         async with application.state.engine.begin() as conn:
             tables = ", ".join(f'"{t.name}"' for t in Base.metadata.sorted_tables)

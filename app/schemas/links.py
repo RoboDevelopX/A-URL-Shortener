@@ -39,5 +39,8 @@ class LinkResponse(BaseModel):
     long_url: str
     is_custom: bool
     status: EffectiveStatus
+    screening_decision: Literal["allow", "review"] | None = Field(
+        description='"review" means the link works but was flagged for human review.'
+    )
     expires_at: datetime | None
     created_at: datetime

@@ -17,6 +17,9 @@ x-app: &app
     API_KEY_PEPPER: ${API_KEY_PEPPER:-dev-only-pepper-change-me}
     RATE_LIMIT_CREATE_PER_KEY: ${RATE_LIMIT_CREATE_PER_KEY:-60}
     RATE_LIMIT_CREATE_PER_IP: ${RATE_LIMIT_CREATE_PER_IP:-120}
+    # Empty means "use the thresholds stored with the model".
+    ML_BLOCK_THRESHOLD: ${ML_BLOCK_THRESHOLD:-}
+    ML_REVIEW_THRESHOLD: ${ML_REVIEW_THRESHOLD:-}
 
 services:
   postgres:

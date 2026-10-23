@@ -22,6 +22,7 @@ from app.services.codes import ShortCodeGenerator
 from app.services.links import LinkService
 from app.services.rate_limit import RateLimitRule, SlidingWindowRateLimiter
 from app.services.redirects import RedirectService
+from app.services.screening import UrlScreener
 from app.services.stats import StatsService
 
 
@@ -61,13 +62,19 @@ def get_link_cache(redis: RedisDep, settings: SettingsDep) -> LinkCache:
 LinkCacheDep = Annotated[LinkCache, Depends(get_link_cache)]
 
 
+def get_screener(request: Request) -> UrlScreener:
+    screener: UrlScreener = request.app.state.screener
+    return screener
+
+
 def get_link_service(
     session: SessionDep,
     settings: SettingsDep,
     codes: Annotated[ShortCodeGenerator, Depends(get_code_generator)],
     cache: LinkCacheDep,
+    screener: Annotated[UrlScreener, Depends(get_screener)],
 ) -> LinkService:
-    return LinkService(session, codes, cache, settings)
+    return LinkService(session, codes=codes, cache=cache, screener=screener, settings=settings)
 
 
 def get_redirect_service(session: SessionDep, cache: LinkCacheDep) -> RedirectService:

@@ -4,6 +4,7 @@
 runs it with ``--factory``, so importing this module has no side effects.
 """
 
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -15,9 +16,34 @@ from app.core.errors import register_error_handlers
 from app.core.logging import configure_logging
 from app.core.middleware import RequestContextMiddleware
 from app.core.redis import create_redis
+from app.ml.classifier import UrlClassifier
 from app.routers import health, links, redirect
 from app.services.codes import ShortCodeGenerator
 from app.services.rate_limit import SlidingWindowRateLimiter
+from app.services.screening import UrlScreener
+
+logger = logging.getLogger(__name__)
+
+
+def build_screener(settings: Settings) -> UrlScreener:
+    """Load the classifier and apply threshold overrides from the environment."""
+    classifier = UrlClassifier.load(settings.model_path)
+    meta = classifier.metadata
+    block, review = settings.ml_block_threshold, settings.ml_review_threshold
+    screener = UrlScreener(
+        classifier,
+        block_threshold=meta.block_threshold if block is None else block,
+        review_threshold=meta.review_threshold if review is None else review,
+    )
+    logger.info(
+        "model_loaded",
+        extra={
+            "model_version": classifier.version,
+            "block_threshold": screener.block_threshold,
+            "review_threshold": screener.review_threshold,
+        },
+    )
+    return screener
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -27,6 +53,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        # Load the model first: if the artifact is missing or tampered with, fail at startup
+        # rather than on the first create request.
+        app.state.screener = build_screener(settings)
         engine = create_engine(settings)
         redis = create_redis(settings)
         app.state.settings = settings

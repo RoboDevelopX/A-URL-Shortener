@@ -1,0 +1,47 @@
+{
+  "version": "urlclf-20261023-1d614354",
+  "artifact_sha256": "1d6143541acb0c55e8f554b49a1499fc52e59c318986fa6eaf5b6afaca7bef10",
+  "trained_at": "2026-10-23T16:05:25+00:00",
+  "model": "hist_gradient_boosting",
+  "features": [
+    "url_length",
+    "host_length",
+    "path_length",
+    "query_length",
+    "host_dots",
+    "host_hyphens",
+    "host_digits",
+    "subdomain_count",
+    "is_ip_host",
+    "has_port",
+    "digit_ratio",
+    "special_char_ratio",
+    "uppercase_ratio",
+    "url_entropy",
+    "host_entropy",
+    "path_depth",
+    "query_params",
+    "has_at_sign",
+    "has_double_slash_in_path",
+    "percent_encoded",
+    "longest_token",
+    "host_max_consonant_run",
+    "suspicious_word_count",
+    "brand_outside_domain",
+    "risky_extension",
+    "is_shortener",
+    "is_punycode",
+    "tld"
+  ],
+  "thresholds": {
+    "block": 0.925209,
+    "review": 0.720504
+  },
+  "dataset": {
+    "url": "https://raw.githubusercontent.com/faizann24/Using-machine-learning-to-detect-malicious-URLs/master/data/data.csv",
+    "sha256": "3243f054f5205e352f7a9adc2d7b993d516acd4ad17cb032b91c989138e34808"
+  },
+  "sklearn_version": "1.9.1",
+  "python_version": "3.12.3",
+  "seed": 42
+}

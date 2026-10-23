@@ -29,6 +29,7 @@ ENV PATH="/app/.venv/bin:${PATH}" \
 COPY alembic.ini ./
 COPY migrations ./migrations
 COPY app ./app
+COPY artifacts ./artifacts
 
 USER app
 EXPOSE 8000

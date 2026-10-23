@@ -7,6 +7,7 @@ from httpx import ASGITransport, AsyncClient
 from redis.asyncio import Redis
 from sqlalchemy import func, select
 
+from app.api.deps import get_screener
 from app.core.redis import RedisGateway
 from app.main import create_app
 from app.models.click import Click
@@ -14,6 +15,7 @@ from app.services.analytics import ClickConsumer, ClickEvent, ClickRecorder
 from app.worker import run
 from tests.conftest import make_settings
 from tests.integration.helpers import issue_key
+from tests.stubs import allow_all_screener
 from tests.unit.test_analytics import CHROME_WINDOWS, GOOGLEBOT, IPHONE
 
 LINKS = "/api/v1/links"
@@ -127,6 +129,7 @@ async def test_ensure_group_is_idempotent(app: FastAPI) -> None:
 
 async def test_clicks_are_written_directly_when_redis_is_down() -> None:
     app = create_app(make_settings(redis_url="redis://127.0.0.1:1/0"))
+    app.dependency_overrides[get_screener] = allow_all_screener
     async with (
         app.router.lifespan_context(app),
         AsyncClient(transport=ASGITransport(app=app), base_url="http://t") as client,

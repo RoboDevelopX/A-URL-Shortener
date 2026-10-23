@@ -5,8 +5,11 @@ compose). The URLs can be overridden with TEST_DATABASE_URL / TEST_REDIS_URL, wh
 """
 
 import os
+from pathlib import Path
 
 from app.core.config import Settings
+
+MODEL_PATH = Path(__file__).resolve().parents[1] / "artifacts" / "url_classifier.joblib"
 
 TEST_DATABASE_URL = os.environ.get(
     "TEST_DATABASE_URL",
@@ -24,6 +27,7 @@ def make_settings(**overrides: object) -> Settings:
         "redis_url": TEST_REDIS_URL,
         "code_secret": "test-code-secret",
         "api_key_pepper": "test-pepper",
+        "model_path": MODEL_PATH,
     }
     values.update(overrides)
     return Settings.model_validate(values)

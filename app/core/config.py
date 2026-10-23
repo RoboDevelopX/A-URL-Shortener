@@ -6,16 +6,18 @@ running with a value that was committed to git.
 """
 
 from functools import lru_cache
-from typing import Literal
+from pathlib import Path
+from typing import Literal, Self
 
-from pydantic import Field, HttpUrl, SecretStr
+from pydantic import Field, HttpUrl, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     """Typed view over the process environment."""
 
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    # Empty variables count as unset, so compose can pass "${VAR:-}" through safely.
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore", env_ignore_empty=True)
 
     environment: Literal["dev", "test", "prod"] = "dev"
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
@@ -67,6 +69,21 @@ class Settings(BaseSettings):
         ),
     )
     max_url_length: int = Field(default=2048, ge=64, le=2048)
+
+    model_path: Path = Field(
+        default=Path("artifacts/url_classifier.joblib"),
+        description="Classifier artifact; its metadata JSON must sit next to it.",
+    )
+    # Unset means "use the thresholds chosen at training time" (stored in the metadata).
+    ml_block_threshold: float | None = Field(default=None, ge=0, le=1)
+    ml_review_threshold: float | None = Field(default=None, ge=0, le=1)
+
+    @model_validator(mode="after")
+    def _check_thresholds(self) -> Self:
+        block, review = self.ml_block_threshold, self.ml_review_threshold
+        if block is not None and review is not None and review > block:
+            raise ValueError("ML_REVIEW_THRESHOLD must not exceed ML_BLOCK_THRESHOLD")
+        return self
 
     @property
     def short_link_origin(self) -> str:

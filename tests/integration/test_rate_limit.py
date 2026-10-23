@@ -8,11 +8,13 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from redis.asyncio import Redis
 
+from app.api.deps import get_screener
 from app.core.redis import RedisGateway
 from app.main import create_app
 from app.services.rate_limit import RateLimitRule, SlidingWindowRateLimiter
 from tests.conftest import make_settings
 from tests.integration.helpers import issue_key
+from tests.stubs import allow_all_screener
 
 LINKS = "/api/v1/links"
 
@@ -74,6 +76,7 @@ async def test_fails_open_when_redis_is_down() -> None:
 @pytest.fixture
 async def limited_app() -> AsyncIterator[FastAPI]:
     app = create_app(make_settings(rate_limit_create_per_key=3, rate_limit_create_per_ip=5))
+    app.dependency_overrides[get_screener] = allow_all_screener
     async with app.router.lifespan_context(app):
         await app.state.redis.client.flushdb()
         yield app

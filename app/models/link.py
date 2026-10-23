@@ -9,6 +9,7 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     Enum,
+    Float,
     ForeignKey,
     Sequence,
     String,
@@ -19,6 +20,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
+from app.models.screening import SCREENING_DECISION_ENUM, ScreeningDecision
 
 MAX_URL_LENGTH = 2048
 
@@ -38,6 +40,7 @@ class Link(Base):
     __tablename__ = "links"
     __table_args__ = (
         CheckConstraint(f"char_length(long_url) <= {MAX_URL_LENGTH}", name="long_url_length"),
+        CheckConstraint("screening_decision <> 'block'", name="never_blocked"),
     )
 
     id: Mapped[int] = mapped_column(
@@ -58,6 +61,11 @@ class Link(Base):
         server_default=LinkStatus.ACTIVE.value,
     )
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Denormalised from screening_events so link reads need no join. NULL means the link
+    # predates screening.
+    screening_decision: Mapped[ScreeningDecision | None] = mapped_column(SCREENING_DECISION_ENUM)
+    screening_score: Mapped[float | None] = mapped_column(Float)
+    model_version: Mapped[str | None] = mapped_column(String(64))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()

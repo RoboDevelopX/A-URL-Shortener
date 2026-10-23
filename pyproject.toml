@@ -59,7 +59,7 @@ extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Path", "f
 python_version = "3.12"
 strict = true
 plugins = ["pydantic.mypy"]
-files = ["app", "migrations", "tests"]
+files = ["app", "ml", "migrations", "tests"]
 
 [[tool.mypy.overrides]]
 module = ["asyncpg.*", "sklearn.*", "joblib.*", "user_agents.*", "locust.*"]
