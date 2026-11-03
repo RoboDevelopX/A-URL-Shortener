@@ -57,6 +57,10 @@ The API is now at http://localhost:8000, with interactive docs at http://localho
 | `make loadtest` | Locust, headless, against the running stack |
 | `make demo-key` | Print a new API key |
 
+## Deploying
+
+`docker-compose.prod.yml` layers production settings over the same stack for a single Linux server. Caddy terminates HTTPS with an automatic Let's Encrypt certificate and is the only container with public ports. Every secret must come from `.env`, and all services restart after a reboot. The step-by-step guide, from an empty server to backups and updates, is in [docs/DEPLOY.md](docs/DEPLOY.md).
+
 ## Using the API
 
 ```bash
@@ -204,8 +208,9 @@ app/
   worker.py      click-ingestion worker      cli.py  API key admin
 migrations/      Alembic (0001 links, 0002 clicks, 0003 api keys, 0004 screening)
 ml/              dataset download/cleaning, training + evaluation
+deploy/          Caddyfile and production .env template (with docker-compose.prod.yml)
 artifacts/       committed model + metadata (sha256-verified at load)
-docs/            DESIGN.md, ML.md, ml_eval/report.md (generated)
+docs/            DESIGN.md, ML.md, DEPLOY.md, ml_eval/report.md (generated)
 tests/           unit/ and integration/
 loadtest/        locustfile.py
 ```

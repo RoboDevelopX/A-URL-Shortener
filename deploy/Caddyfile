@@ -1,0 +1,6 @@
+# Caddy obtains and renews a Let's Encrypt certificate for $DOMAIN, redirects HTTP to HTTPS,
+# and proxies everything to the API. DOMAIN must resolve to this server before first start.
+{$DOMAIN} {
+	encode zstd gzip
+	reverse_proxy api:8000
+}

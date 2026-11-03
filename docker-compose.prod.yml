@@ -1,0 +1,78 @@
+# Production overrides for a single server, layered on docker-compose.yml:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --wait
+#
+# (or set COMPOSE_FILE=docker-compose.yml:docker-compose.prod.yml in .env, as
+# deploy/production.env.example does). Compared with the development stack:
+# - Postgres, Redis and the API publish no host ports. Caddy is the only way in, on 80/443,
+#   and terminates HTTPS with an automatically renewed Let's Encrypt certificate.
+# - Every secret must be set in .env; there are no development fallbacks.
+# - Every service restarts after a crash or reboot, and container logs are size-capped.
+# See docs/DEPLOY.md for the full procedure.
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-prod-env: &prod-env
+  DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-shortener}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-shortener}
+  PUBLIC_BASE_URL: https://${DOMAIN:?set DOMAIN in .env}
+  CODE_SECRET: ${CODE_SECRET:?set CODE_SECRET in .env}
+  API_KEY_PEPPER: ${API_KEY_PEPPER:?set API_KEY_PEPPER in .env}
+
+services:
+  postgres:
+    ports: !reset []
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    restart: unless-stopped
+    logging: *logging
+
+  redis:
+    ports: !reset []
+    restart: unless-stopped
+    logging: *logging
+
+  migrate:
+    environment: *prod-env
+    logging: *logging
+
+  api:
+    ports: !reset []
+    environment:
+      <<: *prod-env
+      # uvicorn takes the client address from X-Forwarded-For only when the connecting peer
+      # is trusted. Nothing can reach the API except over this compose network (it publishes
+      # no port), and Caddy overwrites X-Forwarded-For from clients, so trusting every peer
+      # here yields the real client IP for per-IP rate limits without allowing spoofing.
+      FORWARDED_ALLOW_IPS: "*"
+    logging: *logging
+
+  worker:
+    environment: *prod-env
+    logging: *logging
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # Certificates and the ACME account; losing them forces re-issuance (rate-limited).
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *logging
+
+volumes:
+  caddy_data:
+  caddy_config:
